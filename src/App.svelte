@@ -4,6 +4,7 @@
     import {LinkOutline} from "flowbite-svelte-icons";
 
     let walkerName = $state<string>("DivWalker");
+    let imageHeight = $state<number>(0);
     let walkerJs = $state<string>("");
     let selectedFiles = $state<FileList | null>(null);
     let fileNames = $derived(
@@ -13,14 +14,44 @@
                 .join(", ")
             : "No files selected"
     );
-    const convertToBase64 = async (): Promise<string[]> => {
-        if (selectedFiles) {
+    const resizeImage = (file: File, targetHeight: number): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    const aspectRatio = img.width / img.height;
+                    const targetWidth = targetHeight * aspectRatio;
+
+                    const canvas = document.createElement("canvas");
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+
+                    const ctx = canvas.getContext("2d");
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+                        resolve(canvas.toDataURL("image/png"));
+                    } else {
+                        reject(new Error("Failed to get canvas context"));
+                    }
+                };
+                img.onerror = (error) => reject(error);
+                img.src = reader.result as string;
+            };
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const convertToBase64WithResize = async (files: FileList | null, targetHeight: number): Promise<string[]> => {
+        if (files) {
             return Promise.all(
-                Array.from(selectedFiles).map(file => fileToBase64(file))
+                Array.from(files).map(file => resizeImage(file, targetHeight))
             );
         }
         return [];
     };
+
     const fileToBase64 = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -106,25 +137,44 @@
         document.addEventListener('mousedown', onMouseDown);
     })();`;
 
-    async function generateWalker(event: MouseEvent) {
-        const images: string[] = await convertToBase64();
-        let imagesString: string = ""
+    async function generateWalker() {
+        const targetHeight = imageHeight;
+        if (isNaN(targetHeight) || targetHeight <= 0) {
+            alert("Please enter a valid height for resizing.");
+            return;
+        }
+
+        const images: string[] = await convertToBase64WithResize(selectedFiles, targetHeight);
+        let imagesString: string = "";
         for (let i = 0; i < images.length; i++) {
-            imagesString += "\"";
-            imagesString += images[i];
-            imagesString += "\"";
-            if (i === images.length - 1)
-                imagesString += ",";
+            imagesString += `"${images[i]}"`;
+            if (i !== images.length - 1) imagesString += ",";
         }
         walkerJs = divWalkerTemplate(imagesString);
     }
+
+        // Watch for changes in selectedFiles and set imageHeight to the height of the first image
+    $effect(() => {
+        if (selectedFiles && selectedFiles.length > 0) {
+            const firstFile = selectedFiles[0];
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    imageHeight = img.height;
+                };
+                img.src = reader.result as string;
+            };
+            reader.readAsDataURL(firstFile);
+        }
+    });
 </script>
 
 <main class="mx-auto max-w-2xl mt-8">
     <Heading tag="h1" class="mb-4 text-4xl font-extrabold">Custom DivWalker</Heading>
     <div class="mt-4">
-        <Label for="walker_name" class="mb-2">1. Name Your Walker</Label>
-        <Input type="text" id="walker_name" bind:value={walkerName} required/>
+        <Label for="walker_name" class="mb-2">1. Name your walker</Label>
+        <Input type="text" id="walker_name" bind:value={walkerName}/>
     </div>
     <div class="mt-4">
         <Label for="with_helper" class="mb-2">2. Upload images</Label>
@@ -132,13 +182,17 @@
         <Helper class="mt-1">Selected files: {fileNames}</Helper>
     </div>
     <div class="mt-4">
-        <Label for="div_walker" class="mb-2">3. Generate Your Walker</Label>
+        <Label for="image_size" class="mb-2">3. Resize the images (height in px)</Label>
+        <Input type="text" id="image_size" bind:value={imageHeight}/>
+    </div>
+    <div class="mt-4">
+        <Label for="div_walker" class="mb-2">4. Generate your walker</Label>
         {#if walkerJs !== ""}
-            <Button id="div_walker" color="dark" href={walkerJs}>
+            <Button id="div_walker" color="dark" class="cursor-pointer" href={walkerJs}>
                 <LinkOutline class="me-2 h-5 w-5"/>{walkerName}
             </Button>
         {:else}
-            <Button id="div_walker" color="dark" onclick={generateWalker}>Click Me</Button>
+            <Button id="div_walker" color="dark" class="cursor-pointer" onclick={generateWalker}>Click Me</Button>
         {/if}
 
     </div>
