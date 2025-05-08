@@ -1,7 +1,12 @@
-FROM node:18-alpine
+FROM node:24 AS build
+
 WORKDIR /app
-COPY . /app
-RUN npm ci
+
+COPY package.json ./
+COPY package-lock.json ./
+RUN npm install
+COPY . ./
 RUN npm run build
-USER node:node
-CMD ["node","build/index.js"]
+
+FROM nginx:1.27-alpine
+COPY --from=build /app/dist /usr/share/nginx/html
