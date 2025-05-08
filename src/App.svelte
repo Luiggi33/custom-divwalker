@@ -2,8 +2,10 @@
     import './app.css';
     import {Input, Fileupload, Label, Helper, Button, Heading, Footer} from "flowbite-svelte";
     import {LinkOutline} from "flowbite-svelte-icons";
+    import RangeSlider from './RangeSlider.svelte';
 
     let walkerName = $state<string>("DivWalker");
+    let walkerSpeed = $state<number>(3);
     let walkerJs = $state<string>("");
     let selectedFiles = $state<FileList | null>(null);
     let fileNames = $derived(
@@ -30,11 +32,108 @@
         });
     };
 
-    const divWalkerTemplate = (value: string) => `javascript:(function(){let currentElement = null;let selectionEnabled = true;let images = [${value}];if(!document.getElementById("##MrDivWalkerCss")){%20%20%20%20let%20elem%20=%20document.createElement("div");%20%20%20%20elem.id%20=%20"##MrDivWalkerCss";%20%20%20%20elem.innerHTML%20=%20\`<style>.man{position:%20fixed;z-index:1000;}%20.delete-highlight{background-color:%20skyblue!important;}</style>\`;%20%20%20%20document.querySelector("body").appendChild(elem);}function%20onMouseDown(e){%20%20%20%20addWalkerIfSelectionEnabled();}function%20addWalkerIfSelectionEnabled(){%20%20%20%20if(selectionEnabled%20&&%20currentElement%20!=%20null)%20%20%20%20{%20%20%20%20%20%20%20%20addWalker(currentElement);%20%20%20%20%20%20%20%20if(currentElement)%20{currentElement.classList.remove("delete-highlight");}%20%20%20%20%20%20%20%20currentElement%20=%20null;%20%20%20%20%20%20%20%20selectionEnabled%20=%20false;%20%20%20%20}}document.querySelector('body').addEventListener('keypress',%20function%20(e)%20{%20%20%20%20if%20(e.key%20===%20'q'%20||%20e.key%20===%20'1')%20{%20%20%20%20%20%20%20%20addWalkerIfSelectionEnabled();%20%20%20%20}});function%20onMouseMove(e){%20%20%20%20if(!selectionEnabled)%20return;%20%20%20%20let%20x%20=%20e.clientX;%20%20%20%20let%20y%20=%20e.clientY;%20%20%20%20let%20elem%20=%20document.elementFromPoint(x,y);%20%20%20%20if(elem%20&&%20currentElement%20!==%20elem)%20%20%20%20{%20%20%20%20%20%20%20%20if(currentElement){currentElement.classList.remove("delete-highlight");}%20%20%20%20%20%20%20%20currentElement%20=%20elem;%20%20%20%20%20%20%20%20currentElement.classList.add("delete-highlight");%20%20%20%20}}function%20addWalker(element){%20%20%20%20let%20boundingRect%20=%20element.getBoundingClientRect();%20%20%20%20let%20currentIndex%20=%200;%20%20%20%20let%20currentX%20=%20boundingRect.left;%20%20%20%20let%20velocity%20=%203;%20%20%20%20let%20direction%20=%201;%20%20%20%20let%20mrDivWalker%20=%20document.createElement("img");%20%20%20%20mrDivWalker.classList.add("man");%20%20%20%20mrDivWalker.style.left%20=%20\`\${boundingRect.x}px\`;%20%20%20%20mrDivWalker.style.top%20=%20\`\${boundingRect.y - 64}px\`;%20%20%20%20document.body.append(mrDivWalker);%20%20%20%20%20%20%20%20setInterval(()=>{%20%20%20%20%20%20%20%20boundingRect%20=%20element.getBoundingClientRect();%20%20%20%20%20%20%20%20mrDivWalker.setAttribute("src",%20images[++currentIndex%20%%20images.length]);%20%20%20%20%20%20%20%20currentX%20+=%20(velocity*direction);%20%20%20%20%20%20%20%20%20%20%20%20if(currentX%20+%2039%20>=%20boundingRect.right)%20%20%20%20%20%20%20%20{%20%20%20%20%20%20%20%20%20%20%20%20direction%20=%20-1;%20%20%20%20%20%20%20%20%20%20%20%20currentX%20=%20boundingRect.right-39;%20%20%20%20%20%20%20%20%20%20%20%20mrDivWalker.style.transform%20=%20"scaleX(-1)";%20%20%20%20%20%20%20%20}%20%20%20%20%20%20%20%20if(currentX%20<=%20boundingRect.left)%20%20%20%20%20%20%20%20{%20%20%20%20%20%20%20%20%20%20%20%20direction%20=%201;%20%20%20%20%20%20%20%20%20%20%20%20currentX%20=%20boundingRect.left;%20%20%20%20%20%20%20%20%20%20%20%20mrDivWalker.style.transform%20=%20"scaleX(1)";%20%20%20%20%20%20%20%20}%20%20%20%20%20%20%20%20%20%20%20%20mrDivWalker.style.top%20=%20\`\${boundingRect.y - 64}px\`;%20%20%20%20%20%20%20%20mrDivWalker.style.left%20=%20\`\${currentX}px\`;%20%20%20%20%20%20%20%20mrDivWalker.style.display%20=%20"block";%20%20%20%20},%2030);}document.addEventListener('mousemove',%20onMouseMove);document.addEventListener('mousedown',%20onMouseDown);})();`;
+    const divWalkerTemplate = (value: string, speed: number) => `
+    javascript:(function () {
+        let currentElement = null;
+        let selectionEnabled = true;
+        let images = [${value}];
+        let speed = ${speed};
+
+        if (!document.getElementById("MrDivWalkerCss")) {
+            let elem = document.createElement("div");
+            elem.id = "MrDivWalkerCss";
+            elem.innerHTML = \`
+                <style>
+                    .man {
+                        position: fixed;
+                        z-index: 1000;
+                    }
+                    .delete-highlight {
+                        background-color: skyblue !important;
+                    }
+                </style>\`;
+            document.body.appendChild(elem);
+        }
+
+        function onMouseDown(e) {
+            addWalkerIfSelectionEnabled();
+        }
+
+        function addWalkerIfSelectionEnabled() {
+            if (selectionEnabled && currentElement != null) {
+                addWalker(currentElement);
+                if (currentElement) {
+                    currentElement.classList.remove("delete-highlight");
+                }
+                currentElement = null;
+                selectionEnabled = false;
+            }
+        }
+
+        document.body.addEventListener('keypress', function (e) {
+            if (e.key === 'q' || e.key === '1') {
+                addWalkerIfSelectionEnabled();
+            }
+        });
+
+        function onMouseMove(e) {
+            if (!selectionEnabled) return;
+
+            let x = e.clientX;
+            let y = e.clientY;
+            let elem = document.elementFromPoint(x, y);
+
+            if (elem && currentElement !== elem) {
+                if (currentElement) {
+                    currentElement.classList.remove("delete-highlight");
+                }
+                currentElement = elem;
+                currentElement.classList.add("delete-highlight");
+            }
+        }
+
+        function addWalker(element) {
+            let boundingRect = element.getBoundingClientRect();
+            let currentIndex = 0;
+            let currentX = boundingRect.left;
+            let velocity = speed;
+            let direction = 1;
+
+            let mrDivWalker = document.createElement("img");
+            mrDivWalker.classList.add("man");
+            mrDivWalker.style.left = \`\${boundingRect.x}px\`;
+            mrDivWalker.style.top = \`\${boundingRect.y - 64}px\`;
+            document.body.appendChild(mrDivWalker);
+
+            setInterval(() => {
+                boundingRect = element.getBoundingClientRect();
+                mrDivWalker.src = images[++currentIndex % images.length];
+                currentX += (velocity * direction);
+
+                if (currentX + mrDivWalker.width >= boundingRect.right) {
+                    direction = -1;
+                    currentX = boundingRect.right - mrDivWalker.width;
+                    mrDivWalker.style.transform = "scaleX(-1)";
+                }
+
+                if (currentX <= boundingRect.left) {
+                    direction = 1;
+                    currentX = boundingRect.left;
+                    mrDivWalker.style.transform = "scaleX(1)";
+                }
+
+                mrDivWalker.style.top = \`\${boundingRect.y - 64}px\`;
+                mrDivWalker.style.left = \`\${currentX}px\`;
+                mrDivWalker.style.display = "block";
+            }, 30);
+        }
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mousedown', onMouseDown);
+    })();`;
 
     async function generateWalker(event: MouseEvent) {
         const images: string[] = await convertToBase64();
-        console.log(images);
         let imagesString: string = ""
         for (let i = 0; i < images.length; i++) {
             imagesString += "\"";
@@ -43,7 +142,7 @@
             if (i === images.length - 1)
                 imagesString += ",";
         }
-        walkerJs = divWalkerTemplate(imagesString);
+        walkerJs = divWalkerTemplate(imagesString, walkerSpeed);
     }
 </script>
 
@@ -59,7 +158,18 @@
         <Helper class="mt-1">Selected files: {fileNames}</Helper>
     </div>
     <div class="mt-4">
-        <Label for="div_walker" class="mb-2">3. Generate Your Walker</Label>
+        <Label for="with_helper" class="mb-2">3. Set walking speed</Label>
+        <RangeSlider
+            id="speed_slider"
+            min={1}
+            max={5}
+            step={1}
+            bind:val={walkerSpeed}
+        />
+        <Helper class="mt-1">Selected speed: {walkerSpeed}</Helper>
+    </div>
+    <div class="mt-4">
+        <Label for="div_walker" class="mb-2">4. Generate Your Walker</Label>
         {#if walkerJs !== ""}
             <Button id="div_walker" color="dark" href={walkerJs}>
                 <LinkOutline class="me-2 h-5 w-5"/>{walkerName}
