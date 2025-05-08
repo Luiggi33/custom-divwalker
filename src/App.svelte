@@ -31,100 +31,77 @@
     };
 
     const divWalkerTemplate = (images: string) => `
-    javascript:(function () {
-        let currentElement = null;
-        let selectionEnabled = true;
-        let images = [${images}];
-
-        if (!document.getElementById("MrDivWalkerCss")) {
-            let elem = document.createElement("div");
-            elem.id = "MrDivWalkerCss";
-            elem.innerHTML = \`
-                <style>
-                    .man {
-                        position: fixed;
-                        z-index: 1000;
-                    }
-                    .delete-highlight {
-                        background-color: skyblue !important;
-                    }
-                </style>\`;
+    javascript:(function(){
+        let currentElement=null;
+        let selectionEnabled=true;
+        let images=[${images}];
+        if(!document.getElementById("##MrDivWalkerCss")){
+            let elem=document.createElement("div");
+            elem.id="##MrDivWalkerCss";
+            elem.innerHTML=\`<style>.man {position: fixed;z-index: 1000;} .delete-highlight {background-color: skyblue !important;}</style>\`;
             document.body.appendChild(elem);
         }
-
-        function onMouseDown(e) {
+        function onMouseDown(e){
             addWalkerIfSelectionEnabled();
         }
-
-        function addWalkerIfSelectionEnabled() {
-            if (selectionEnabled && currentElement != null) {
+        function addWalkerIfSelectionEnabled(){
+            if(selectionEnabled && currentElement != null){
                 addWalker(currentElement);
-                if (currentElement) {
+                if(currentElement){
                     currentElement.classList.remove("delete-highlight");
                 }
-                currentElement = null;
-                selectionEnabled = false;
+                currentElement=null;
+                selectionEnabled=false;
             }
         }
-
-        document.body.addEventListener('keypress', function (e) {
-            if (e.key === 'q' || e.key === '1') {
+        document.body.addEventListener('keypress', function(e){
+            if(e.key === 'q' || e.key === '1'){
                 addWalkerIfSelectionEnabled();
             }
         });
-
-        function onMouseMove(e) {
-            if (!selectionEnabled) return;
-
-            let x = e.clientX;
-            let y = e.clientY;
-            let elem = document.elementFromPoint(x, y);
-
-            if (elem && currentElement !== elem) {
-                if (currentElement) {
+        function onMouseMove(e){
+            if(!selectionEnabled) return;
+            let x=e.clientX;
+            let y=e.clientY;
+            let elem=document.elementFromPoint(x, y);
+            if(elem && currentElement !== elem){
+                if(currentElement){
                     currentElement.classList.remove("delete-highlight");
                 }
-                currentElement = elem;
+                currentElement=elem;
                 currentElement.classList.add("delete-highlight");
             }
         }
-
-        function addWalker(element) {
-            let boundingRect = element.getBoundingClientRect();
-            let currentIndex = 0;
-            let currentX = boundingRect.left;
-            let velocity = 3;
-            let direction = 1;
-
-            let mrDivWalker = document.createElement("img");
+        function addWalker(element){
+            let boundingRect=element.getBoundingClientRect();
+            let currentIndex=0;
+            let currentX=boundingRect.left;
+            let velocity=3;
+            let direction=1;
+            let mrDivWalker=document.createElement("img");
             mrDivWalker.classList.add("man");
-            mrDivWalker.style.left = \`\${boundingRect.x}px\`;
-            mrDivWalker.style.top = \`\${boundingRect.y - 64}px\`;
+            mrDivWalker.style.left=\`\${boundingRect.x}px\`;
+            mrDivWalker.style.top=\`\${boundingRect.y - 64}px\`;
             document.body.appendChild(mrDivWalker);
-
             setInterval(() => {
-                boundingRect = element.getBoundingClientRect();
-                mrDivWalker.src = images[++currentIndex % images.length];
-                currentX += (velocity * direction);
-
-                if (currentX + mrDivWalker.width >= boundingRect.right) {
-                    direction = -1;
-                    currentX = boundingRect.right - mrDivWalker.width;
-                    mrDivWalker.style.transform = "scaleX(-1)";
+                boundingRect=element.getBoundingClientRect();
+                mrDivWalker.src=images[++currentIndex % images.length];
+                currentX+=(velocity * direction);
+                if(currentX+mrDivWalker.width>=boundingRect.right){
+                    direction=-1;
+                    currentX=boundingRect.right - mrDivWalker.width;
+                    mrDivWalker.style.transform="scaleX(-1)";
                 }
-
-                if (currentX <= boundingRect.left) {
-                    direction = 1;
-                    currentX = boundingRect.left;
-                    mrDivWalker.style.transform = "scaleX(1)";
+                if(currentX <= boundingRect.left){
+                    direction=1;
+                    currentX=boundingRect.left;
+                    mrDivWalker.style.transform="scaleX(1)";
                 }
-
-                mrDivWalker.style.top = \`\${boundingRect.y - 64}px\`;
-                mrDivWalker.style.left = \`\${currentX}px\`;
-                mrDivWalker.style.display = "block";
-            }, 30);
+                mrDivWalker.style.top=\`\${boundingRect.y - 64}px\`;
+                mrDivWalker.style.left=\`\${currentX}px\`;
+                mrDivWalker.style.display="block";
+            },30);
         }
-
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mousedown', onMouseDown);
     })();`;
